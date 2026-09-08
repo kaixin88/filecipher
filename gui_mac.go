@@ -123,7 +123,7 @@ func (m *macUI) onAdd() {
 		defer r.Close()
 		m.ingestPaths([]string{r.URI().Path()})
 	}, m.win)
-	d.SetTitle("选择要处理的文件")
+	d.SetTitleText("选择要处理的文件")
 	d.Show()
 }
 
