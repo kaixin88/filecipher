@@ -339,7 +339,7 @@ func runGUI() {
 			}
 			m.edtOut.SetText(lu.Path())
 		}, w)
-		d.SetTitle("选择输出目录")
+		d.SetTitleText("选择输出目录")
 		d.Show()
 	})
 

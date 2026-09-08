@@ -264,3 +264,31 @@ func cleanupErr(f *os.File, dst string, err error) error {
 	os.Remove(dst)
 	return err
 }
+
+// 运行模式 (跨平台共享, GUI 与 CLI 均使用)
+const (
+	modeAuto = 0 // 智能处理: 按扩展名自动识别 (.fcp -> 解密, 其余 -> 加密)
+	modeEnc  = 1 // 强制加密
+	modeDec  = 2 // 强制解密
+)
+
+// buildOps 依据模式为每个文件生成操作表: true=加密 false=解密
+func buildOps(files []string, mode int) []bool {
+	ops := make([]bool, len(files))
+	for i, f := range files {
+		switch mode {
+		case modeEnc:
+			ops[i] = true
+		case modeDec:
+			ops[i] = false
+		default: // modeAuto: 自动识别, .fcp 一律解密
+			ops[i] = !isFCP(f)
+		}
+	}
+	return ops
+}
+
+// isFCP 判断文件是否为 FileCipher 加密格式 (.fcp 后缀)
+func isFCP(p string) bool {
+	return strings.HasSuffix(strings.ToLower(p), ".fcp")
+}

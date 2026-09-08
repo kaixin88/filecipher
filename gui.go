@@ -35,13 +35,6 @@ const (
 	stDoneErr = 3
 )
 
-// 运行模式
-const (
-	modeAuto = 0 // 智能处理: 按扩展名自动识别 (.fcp -> 解密, 其余 -> 加密)
-	modeEnc  = 1 // 强制加密
-	modeDec  = 2 // 强制解密
-)
-
 type fileList struct {
 	items []string
 	mu    atomic.Int32
@@ -563,25 +556,6 @@ func (a *appUI) onStart(mode int) {
 }
 
 // 按模式决定每个文件执行的操作: true=加密, false=解密
-func buildOps(files []string, mode int) []bool {
-	ops := make([]bool, len(files))
-	for i, f := range files {
-		switch mode {
-		case modeEnc:
-			ops[i] = true
-		case modeDec:
-			ops[i] = false
-		default: // modeAuto: 自动识别, .fcp 一律解密
-			ops[i] = !isFCP(f)
-		}
-	}
-	return ops
-}
-
-func isFCP(p string) bool {
-	return strings.HasSuffix(strings.ToLower(p), ".fcp")
-}
-
 func (a *appUI) worker(files []string, ops []bool, password, outdir string) {
 	outs := make([]string, len(files))
 	conflict := 0
