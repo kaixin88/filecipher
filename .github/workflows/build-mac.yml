@@ -1,0 +1,64 @@
+name: Build macOS
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ '*.go', 'go.mod', 'go.sum', '.github/workflows/build-mac.yml' ]
+  workflow_dispatch:
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build arm64 + amd64
+        run: |
+          mkdir -p build
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o build/FileCipher-arm64 .
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o build/FileCipher-amd64 .
+
+      - name: lipo -> universal binary
+        run: lipo -create -output build/FileCipher build/FileCipher-arm64 build/FileCipher-amd64
+
+      - name: Assemble FileCipher.app
+        run: |
+          APP="build/FileCipher.app"
+          mkdir -p "$APP/Contents/MacOS"
+          cp build/FileCipher "$APP/Contents/MacOS/FileCipher"
+          cat > "$APP/Contents/Info.plist" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key><string>FileCipher</string>
+            <key>CFBundleDisplayName</key><string>FileCipher</string>
+            <key>CFBundleIdentifier</key><string>com.kaixin88.filecipher</string>
+            <key>CFBundleVersion</key><string>2.3</string>
+            <key>CFBundleShortVersionString</key><string>2.3</string>
+            <key>CFBundleExecutable</key><string>FileCipher</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>LSMinimumSystemVersion</key><string>12.0</string>
+            <key>NSHighResolutionCapable</key><true/>
+            <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
+          </dict>
+          </plist>
+          EOF
+          codesign --force --deep -s - "$APP"
+
+      - name: Package zip
+        run: |
+          cd build
+          zip -qry ../FileCipher-mac.zip FileCipher.app
+          cd ..
+          ls -lh FileCipher-mac.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FileCipher-mac
+          path: FileCipher-mac.zip
